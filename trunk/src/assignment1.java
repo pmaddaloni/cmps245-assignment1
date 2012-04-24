@@ -1,7 +1,9 @@
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import edu.stanford.nlp.dcoref.CorefChain;
@@ -12,6 +14,7 @@ import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.trees.semgraph.SemanticGraph;
 import edu.stanford.nlp.trees.semgraph.SemanticGraphCoreAnnotations.CollapsedCCProcessedDependenciesAnnotation;
+import edu.stanford.nlp.trees.semgraph.SemanticGraphEdge;
 import edu.stanford.nlp.util.CoreMap;
 
 
@@ -159,12 +162,43 @@ public class assignment1 {
 			//System.out.println("Node 3: "+sentenceDeps.getNodeByIndex(3)); //Has all sorts of info about this "word"
 			
 			String protagonist = dataset.getProtagonist();
+			IndexedWord input = sentenceDeps.getNodeByWordPattern(protagonist);
 			
-			for(IndexedWord dependency : sentenceDeps.getAllNodesByWordPattern(protagonist)){
+			sentenceDeps.getAllNodesByWordPattern("VBD");
+			
+			try {
 				
-				Event event = new Event(dependency.word(), dependency.docID(), true, true, false);
-				events.add(event);
+				for(IndexedWord dependency: sentenceDeps.getParentList(input)){
+					dependency.tag();
+					Event event = new Event(dependency.word(), protagonist, true, true, false);
+					events.add(event);
+				}
 			}
+			catch(Exception e){
+			}		
+			
+			//String protagonistCoreference = dataset.getProtagonist();
+			//input = sentenceDeps.getNodeByWordPattern("he");
+			
+			try {
+				
+				for(IndexedWord dependency: sentenceDeps.getParentList(input)){
+					dependency.tag();
+					Event event = new Event(dependency.word(), protagonist, false, false, true);
+					events.add(event);
+				}
+			}
+			catch(Exception e){
+			}	
+			
+			
+			Iterator<Entry<Integer, CorefChain>> entries = corefChains.entrySet().iterator();
+			while (entries.hasNext()) {
+				Entry<Integer, CorefChain> entry = entries.next();
+				System.out.println(entry.getKey() + "/" + entry.getValue());
+			}
+			System.out.println("");
+
 		}		
 		return events;
 	}
