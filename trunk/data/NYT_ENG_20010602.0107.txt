@@ -1,0 +1,21 @@
+1 made make subj
+2 condemned condemn subj
+3 urging urge obj
+4 follow_up follow_up subj
+5 submitting submit subj
+6 agree agree subj
+7 read read subj
+8 told tell subj
+
+
+--------------------------
+Yasser Arafat actions
+
+--------------------------
+<DOC id="NYT_ENG_20010602.0107" type="story" >
+<HEADLINE>
+ARAFAT, DEPLORING TEL AVIV ATTACK, CALLS FOR A CEASE-FIRE
+</HEADLINE>
+<DATELINE>
+JERUSALEM (BC-MIDEAST-VIOLENCE-ART-600(2TAKES)-NYT)
+</DATELINE>
