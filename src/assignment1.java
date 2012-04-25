@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,7 +15,6 @@ import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.trees.semgraph.SemanticGraph;
 import edu.stanford.nlp.trees.semgraph.SemanticGraphCoreAnnotations.CollapsedCCProcessedDependenciesAnnotation;
-import edu.stanford.nlp.trees.semgraph.SemanticGraphEdge;
 import edu.stanford.nlp.util.CoreMap;
 
 
@@ -50,7 +50,7 @@ public class assignment1 {
 		datasets.add(jackAndJillDataset);
 		
 //		TODO: Once you have "jack and jill" running, add the following:
-		//datasets.add(new Dataset("news"));
+		datasets.add(new Dataset("news"));
 		//datasets.add(new Dataset("salinger_wiki_full"));
 		//datasets.add(new Dataset("indiana_jones_full"));
 		//datasets.add(new Dataset("forums_bush"));
@@ -142,64 +142,93 @@ public class assignment1 {
 			LinkedList<SemanticGraph> dependencyGraphs,
 			Map<Integer, CorefChain> corefChains, 
 			Dataset dataset) {
-		LinkedList<Event> events = new LinkedList<Event>();
 		
-		/*TODO:
-		 * Write your code here
-		 * This is where the magic happens
-		 * Hint: see loop. 
-		 *          Use code completion (ctrl+space in eclipse)
-		 *          Use a debugger!
-		 *          Print things out using System.out.println(foo)
-		 *          Use sentence and token indices to uniquely identify words.
-		 *          Check out the javadocs online.
-		 * */
+		LinkedList<Event> events = new LinkedList<Event>();
+		List<Integer> sentences = new ArrayList<Integer>();	//contains the sentences that mention the protagonist
+		String protagonist = dataset.getProtagonist();
+		int sentenceNum = 0;
+		
+		Iterator<Entry<Integer, CorefChain>> entries = corefChains.entrySet().iterator();
+		while (entries.hasNext()) {
+			Entry<Integer, CorefChain> entry = entries.next();
+
+			//System.out.println(entry.getKey() + "/" + entry.getValue());
+			if (entry.getValue().getRepresentativeMention().toString().contains(protagonist)){
+				String[] tokens = entry.getValue().getCorefMentions().toString().split(" ");
+				for (int i = 0; i < tokens.length; i++){
+					if (tokens[i].contains("sentence")){
+						String sentenceNumber = tokens[i+1].substring(0, 1);
+						sentences.add(Integer.parseInt(sentenceNumber));
+					}
+				}
+			}
+			
+		}
 		
 		
 		//This is an example loop to get you started, it is but one way to do things and adding coref will require more effort
-		for(SemanticGraph sentenceDeps : dependencyGraphs){
+		for(SemanticGraph sentenceDeps : dependencyGraphs)
+		{
+			sentenceNum++;
 			System.out.println(sentenceDeps);
-			//System.out.println("Node 3: "+sentenceDeps.getNodeByIndex(3)); //Has all sorts of info about this "word"
+			IndexedWord protagonistIW = sentenceDeps.getNodeByWordPattern(protagonist);
 			
-			String protagonist = dataset.getProtagonist();
-			IndexedWord input = sentenceDeps.getNodeByWordPattern(protagonist);
-			
-			sentenceDeps.getAllNodesByWordPattern("VBD");
-			
-			try {
-				
-				for(IndexedWord dependency: sentenceDeps.getParentList(input)){
-					dependency.tag();
+			try {			
+				for(IndexedWord dependency: sentenceDeps.getParentList(protagonistIW))
+				{
 					Event event = new Event(dependency.word(), protagonist, true, true, false);
 					events.add(event);
 				}
 			}
+			catch(Exception e){	}	
+
+
+			
+			try {			
+				for (int i = 0; i < sentenceDeps.size(); i++)
+				{
+					IndexedWord dependency = sentenceDeps.getNodeByIndexSafe(i);
+					if (dependency != null && dependency.tag().contains("VB")){
+						for(IndexedWord possible: sentenceDeps.getChildList(dependency))
+						{
+							if (possible.tag().toString().contains("PR"))
+							{
+								for (int a = 0; a < sentences.size(); a++)
+								{
+									if (sentenceNum == sentences.get(a))
+									{
+										Event event = new Event(possible.word(), dependency.word(), false, false, true);
+										events.add(event);
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			catch(Exception e){
 			}		
-			
-			//String protagonistCoreference = dataset.getProtagonist();
-			//input = sentenceDeps.getNodeByWordPattern("he");
+						
+	
+			/*			
+			String protagonistCoreference = dataset.getProtagonist();
+			protagonistIW = sentenceDeps.getNodeByWordPattern("he");
 			
 			try {
 				
-				for(IndexedWord dependency: sentenceDeps.getParentList(input)){
-					dependency.tag();
+				for(IndexedWord dependency: sentenceDeps.getParentList(protagonistIW)){
 					Event event = new Event(dependency.word(), protagonist, false, false, true);
 					events.add(event);
 				}
 			}
 			catch(Exception e){
 			}	
-			
-			
-			Iterator<Entry<Integer, CorefChain>> entries = corefChains.entrySet().iterator();
-			while (entries.hasNext()) {
-				Entry<Integer, CorefChain> entry = entries.next();
-				System.out.println(entry.getKey() + "/" + entry.getValue());
-			}
 			System.out.println("");
-
-		}		
+			
+			*/
+		}	
+		
 		return events;
 	}
 
