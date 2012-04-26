@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import edu.stanford.nlp.dcoref.CorefChain;
 import edu.stanford.nlp.dcoref.CorefCoreAnnotations.CorefChainAnnotation;
@@ -48,13 +49,11 @@ public class assignment1 {
 				"Jack");
 		
 		datasets.add(jackAndJillDataset);
-		
-//		TODO: Once you have "jack and jill" running, add the following:
 		datasets.add(new Dataset("news"));
-		//datasets.add(new Dataset("salinger_wiki_full"));
-		//datasets.add(new Dataset("indiana_jones_full"));
-		//datasets.add(new Dataset("forums_bush"));
-		//datasets.add(new Dataset("forums_kerry"));
+		datasets.add(new Dataset("salinger_wiki_full"));
+		datasets.add(new Dataset("indiana_jones_full"));
+		datasets.add(new Dataset("forums_bush"));
+		datasets.add(new Dataset("forums_kerry"));
 		
 		return datasets;
 	}
@@ -144,25 +143,55 @@ public class assignment1 {
 			Dataset dataset) {
 		
 		LinkedList<Event> events = new LinkedList<Event>();
-		List<Integer> sentences = new ArrayList<Integer>();	//contains the sentences that mention the protagonist
-		String protagonist = dataset.getProtagonist();
+		List<Integer> sentencesIndex = new ArrayList<Integer>();	//contains the sentences that mention the protagonist
+		List<String> subjectIndex = new ArrayList<String>();
+		Object[] protagonists = dataset.getProtagonistNames().toArray();
 		int sentenceNum = 0;
 		
 		Iterator<Entry<Integer, CorefChain>> entries = corefChains.entrySet().iterator();
+		Boolean leaveLoop = false;
+		
 		while (entries.hasNext()) {
 			Entry<Integer, CorefChain> entry = entries.next();
 
 			//System.out.println(entry.getKey() + "/" + entry.getValue());
-			if (entry.getValue().getRepresentativeMention().toString().contains(protagonist)){
-				String[] tokens = entry.getValue().getCorefMentions().toString().split(" ");
-				for (int i = 0; i < tokens.length; i++){
-					if (tokens[i].contains("sentence")){
-						String sentenceNumber = tokens[i+1].substring(0, 1);
-						sentences.add(Integer.parseInt(sentenceNumber));
+			for(int a = 0; a < protagonists.length; a++)
+			{
+				if ((entry.getValue().getRepresentativeMention().toString().toLowerCase()).contains(protagonists[a].toString()))
+				{
+					leaveLoop = true;
+					String[] tokens = entry.getValue().getCorefMentions().toString().split(" ");
+					for (int i = 0; i < tokens.length; i++){
+						if (tokens[i].contains("sentence")){
+							String sentenceNumber = tokens[i+1].substring(0, tokens[i+1].length()-1);
+							sentencesIndex.add(Integer.parseInt(sentenceNumber));
+						}
+					}
+					tokens = entry.getValue().getCorefMentions().toString().split("\"");
+					for (int i = 0; i < tokens.length; i++)
+					{
+
+						if (i == 0){
+							//String sentenceI = tokens[i].substring(2, tokens[i].length()-1);
+							//subjectIndex.add(sentenceI);
+						}
+						else if (i == tokens.length - 1)
+						{
+							//String sentenceI = tokens[i].substring(1, tokens[i].length()-2);
+							//subjectIndex.add(sentenceI);
+						}
+						else
+						{
+							String sentenceI = tokens[i].substring(0, tokens[i].length());
+							subjectIndex.add(sentenceI);
+						}
+							
+						
 					}
 				}
 			}
-			
+			if (leaveLoop)
+				break;
 		}
 		
 		
@@ -170,17 +199,22 @@ public class assignment1 {
 		for(SemanticGraph sentenceDeps : dependencyGraphs)
 		{
 			sentenceNum++;
-			System.out.println(sentenceDeps);
-			IndexedWord protagonistIW = sentenceDeps.getNodeByWordPattern(protagonist);
+			//System.out.println(sentenceDeps);	//uncomment to see the dependency graph!
 			
-			try {			
+			//IndexedWord protagonistIW = sentenceDeps.getNodeByWordPattern(protagonist);
+			
+			/*			
+			 * try {			
 				for(IndexedWord dependency: sentenceDeps.getParentList(protagonistIW))
 				{
-					Event event = new Event(dependency.word(), protagonist, true, true, false);
-					events.add(event);
+					if (dependency.tag().contains("VB"))
+					{
+						Event event = new Event(dependency.word(), protagonist, true, true, false);
+						events.add(event);
+					}
 				}
 			}
-			catch(Exception e){	}	
+			catch(Exception e){	}	*/
 
 
 			
@@ -193,9 +227,9 @@ public class assignment1 {
 						{
 							if (possible.tag().toString().contains("PR"))
 							{
-								for (int a = 0; a < sentences.size(); a++)
+								for (int a = 0; a < sentencesIndex.size(); a++)
 								{
-									if (sentenceNum == sentences.get(a))
+									if (sentenceNum == sentencesIndex.get(a) && subjectIndex.contains(possible.word()))
 									{
 										Event event = new Event(possible.word(), dependency.word(), false, false, true);
 										events.add(event);
@@ -203,6 +237,23 @@ public class assignment1 {
 									}
 								}
 							}
+							else{
+								for (int b = 0; b < protagonists.length; b++)
+								{
+									if (possible.tag().toString().contains("N") && protagonists[b].toString().equals(possible.word().toLowerCase()))
+									{
+										for (int a = 0; a < sentencesIndex.size(); a++)
+										{
+											if (sentenceNum == sentencesIndex.get(a))
+											{
+												Event event = new Event(dependency.word(), possible.word(), true, true, false);
+												events.add(event);
+												break;
+											}
+										}
+									}//end if
+								}//end for
+							}//end else
 						}
 					}
 				}
